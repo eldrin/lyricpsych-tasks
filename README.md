@@ -2,6 +2,9 @@
 
 1. plan
 
-- breakfast
-- coffee
 - coding on Lyrics stuffs
+- following next BS lecture
+
+2. writing
+
+- lyrics paper more details
