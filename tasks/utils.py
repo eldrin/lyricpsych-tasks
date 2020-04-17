@@ -112,6 +112,26 @@ def split_data(X, y, spliter=None, train_ratio=0.8):
     return (Xtr, Xvl, Xts), (ytr, yvl, yts)
 
 
+def load_csr_data(h5py_fn, row='users', col='items'):
+    """ Load recsys data stored in hdf format
+
+    Inputs:
+        fn (str): filename for the data
+
+    Returns:
+        scipy.sparse.csr_matrix: user-item matrix
+        numpy.ndarray: user list
+        numpy.ndarray: item list
+    """
+    import h5py
+    with h5py.File(h5py_fn, 'r') as hf:
+        data = (hf['data'][:], hf['indices'][:], hf['indptr'][:])
+        X = sp.csr_matrix(data)
+        rows = hf[row][:]
+        cols = hf[col][:]
+    return X, rows, cols
+
+
 def get_all_comb(cases, include_null=False):
     combs = [
         combinations(cases, j)
