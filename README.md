@@ -1,6 +1,17 @@
-## HERE IS THE EXAMPLE
+# LyricPsych::Task Simulation
 
-1. plan
+This repository contains codes for the task simulation using various lyrics based feature set.
 
-- coding on Lyrics stuffs
-- following next BS lecture
+## Install
+
+
+## Run Tasks
+
+
+## Authors
+
+
+## TODOs
+
+
+## Reference
