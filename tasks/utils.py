@@ -10,6 +10,8 @@ from sklearn.model_selection import ShuffleSplit
 
 import h5py
 
+from .files import mxm2msd as mxm2msd_fn
+
 
 def prepare_feature(feature_fn):
     """"""
