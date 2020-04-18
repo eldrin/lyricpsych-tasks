@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch
 from scipy import sparse as sp
@@ -8,8 +9,8 @@ from skopt.space import Real, Integer
 from skopt.utils import use_named_args
 
 from aarms.models.als_feat import ALSFeat
-from factomach.models.uifm import UserItemFM as FactorizationMachine
-from factomach.metrics import ndcg
+from factormach.models.uifm import UserItemFM as FactorizationMachine
+from factormach.metric import ndcg
 
 from tqdm import tqdm
 
@@ -302,7 +303,7 @@ def eval_model(model, train_data, test_data,
 
 def instantiate_model(model_class, k=32, lmbda=1, l2=1e-6, n_iters=50,
                       alpha=1, eps=1e-1, learn_rate=1e-3, batch_sz=256,
-                      use_gpu=True):
+                      use_gpu=False):
     """"""
     k = int(k)  # should be cased to integer
 
@@ -328,8 +329,8 @@ def instantiate_model(model_class, k=32, lmbda=1, l2=1e-6, n_iters=50,
 
 
 def get_model_instance(model_class, train_data, valid_data,
-                       n_test_users=5000, topn=100,
-                       n_opt_calls=50, rnd_state=0):
+                       n_test_users=5000, topn=100, n_opt_calls=50,
+                       rnd_state=0, use_gpu=False, batch_sz=256):
     """"""
     # hyper param search range
     search_spaces = {
@@ -346,7 +347,10 @@ def get_model_instance(model_class, train_data, valid_data,
         # setup objective func evaluated by optimizer
         @use_named_args(search_spaces[model_class])
         def _objective(**params):
-            model = instantiate_model(model_class, **params)
+            model = instantiate_model(model_class,
+                                      use_gpu=use_gpu,
+                                      batch_sz=batch_sz,
+                                      **params)
 
             # evaluate the model
             scores = eval_model(model, (Xtr, Ytr), (Xvl, Yvl),
@@ -367,7 +371,12 @@ def get_model_instance(model_class, train_data, valid_data,
     else:
         best_param = {}
 
-    best_model = instantiate_model(model_class, **best_param)
+    best_model = instantiate_model(
+        model_class,
+        use_gpu=use_gpu,
+        batch_sz=batch_sz,
+        **best_param
+    )
     return best_model, best_param
 
 
@@ -403,6 +412,10 @@ def setup_argparser():
                         help='number of testing users')
     parser.add_argument('--n-rep', type=int, default=5,
                         help='number of testing users')
+    parser.add_argument('--fm-batch-sz', type=int, default=256,
+                        help='batch size for fitting factorization machine')
+    parser.add_argument('--fm-gpu', dest='fm_gpu', action='store_true')
+    parser.set_defaults(fm_gpu=True)
     args = parser.parse_args()
     return args
 
@@ -410,11 +423,6 @@ def setup_argparser():
 if __name__ == "__main__":
     # build argparser
     args = setup_argparser()
-
-    # load relevant packages
-    import os
-    os.environ['MKL_NUM_THREADS'] = '1'
-    args = setup_argparse()
 
     # load run specific packages
     from sklearn.model_selection import ShuffleSplit
@@ -449,10 +457,16 @@ if __name__ == "__main__":
             if j == 0:
                 # find best model 
                 model, params = get_model_instance(
-                    conf['model'], (Xtr, Ytr), (Xvl, Yvl)
+                    conf['model'], (Xtr, Ytr), (Xvl, Yvl),
+                    use_gpu=args.fm_gpu, batch_sz=args.fm_batch_sz
                 )
             else:
-                model = instantiate_model(conf['model'], **params)
+                model = instantiate_model(
+                    conf['model'],
+                    use_gpu=args.fm_gpu,
+                    batch_sz=args.fm_batch_sz,
+                    **params
+                )
 
             # prep test
             X_ = sp.hstack([Xtr, Xvl]).tocsr()

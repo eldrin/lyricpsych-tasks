@@ -33,6 +33,10 @@ def setup_argparse():
                         help='filename for the test output')
     parser.add_argument('--n-rep', type=int, default=5,
                         help='number of testing users')
+    parser.add_argument('--fm-batch-sz', type=int, default=256,
+                        help='batch size for fitting factorization machine')
+    parser.add_argument('--fm-gpu', dest='fm_gpu', action='store_true')
+    parser.set_defaults(fm_gpu=False)
     args = parser.parse_args()
     return args
 
@@ -72,10 +76,13 @@ if __name__ == "__main__":
         if j == 0:
             # find best model 
             model, params = get_model_instance(
-                conf['model'], (Xtr, Ytr), (Xvl, Yvl)
+                conf['model'], (Xtr, Ytr), (Xvl, Yvl),
+                use_gpu=args.fm_gpu
             )
         else:
-            model = instantiate_model(conf['model'], **params)
+            model = instantiate_model(conf['model'],
+                                      use_gpu=args.fm_gpu,
+                                      **params)
 
         # prep test
         X_ = sp.hstack([Xtr, Xvl]).tocsr()
