@@ -433,6 +433,7 @@ if __name__ == "__main__":
     # load the relevant data
     print('Loading data...')
     X, Y, users, items = load_data(args.recsys_fn, args.feature_fn)
+    items2ix = {tid:i for i, tid in enumerate(items)}
 
     print('Densifying the data...')
     X, users, items_new, _ = densify(X, users, items)
