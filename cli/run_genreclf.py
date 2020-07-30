@@ -17,7 +17,7 @@ def setup_argparse():
     # setup argparser
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('autotagging_fn', type=str,
+    parser.add_argument('genreclf_fn', type=str,
                         help='filename of the auto-tagging label data')
     parser.add_argument('feature_fn', type=str,
                         help='filename to the lyrics feature file')
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     configs = json.load(open(args.configure_fn))
 
     # load the relevant data
-    X, y = load_data(args.autotagging_fn, args.feature_fn)
+    X, y = load_data(args.genreclf_fn, args.feature_fn)
 
     # run
     spliter = StratifiedShuffleSplit(train_size=0.8)
