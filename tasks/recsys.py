@@ -8,7 +8,8 @@ from skopt import gp_minimize
 from skopt.space import Real, Integer
 from skopt.utils import use_named_args
 
-from aarms.models.als_feat import ALSFeat
+# from aarms.models.als_feat import ALSFeat
+from aarms.models.als import ALS
 from factormach.models.uifm import UserItemFM as FactorizationMachine
 from factormach.metric import ndcg
 
@@ -109,7 +110,7 @@ class ItemNeighbor(Recsys):
         self.item_profiles_ = self._normalize(item_feat)
 
         # confidence matrix (minus 1)
-        # C = 1 + alpha * R 
+        # C = 1 + alpha * R
         # Z = C.sum(1)
         # Z_inv = Z**-1
         CmI = user_item.copy()
@@ -150,25 +151,24 @@ class WRMFFeat(Recsys):
         self.l2 = l2
         self.n_ites = n_iters
         self.alpha = alpha
-        self._model = ALSFeat(
-            k, init, lmbda, l2, n_iters, alpha,
-            dtype='float64', dropout=0
-        )
+        self.lmbda = lmbda
+        self._model = ALS(k, init, l2, n_iters, alpha, dtype='float64')
 
     def fit(self, user_item, item_feat, verbose=False):
-        self._model.fit(user_item, item_feat, None, verbose=verbose)
+        self._model.fit(user_item,
+                        item_dense_feature=item_feat,
+                        lmbda_item_dense_feature=self.lmbda,
+                        verbose=verbose)
 
         # we track down the item factors specially since it can be updated
         self.item_factors_ = self._model.embeddings_['item']
-        # self.item_factors_ = item_feat @ self._model.embeddings_['feat']
 
     def _update(self, new_item_feat):
-        v = new_item_feat @ self._model.embeddings_['feat']
+        v = new_item_feat @ self._model.embeddings_['item_dense_feature']
         self.item_factors_ = np.vstack([self.item_factors_, v])
 
     def _recommend(self, user, user_item, n, gt=None):
         s = self._model.embeddings_['user'][user] @ self.item_factors_.T
-        # s = vecmat(self._model.embeddings_['user'][user], self.item_factors_.T)
         if gt is not None:
             s[gt] = -np.inf
 
@@ -243,7 +243,7 @@ class WRMF(Recsys):
 
     def _recommend(self, user, user_item, n, gt=None):
         return np.array([
-            itemid for itemid, score 
+            itemid for itemid, score
             in self.als.recommend(user, user_item, n)
         ])
 
@@ -456,7 +456,7 @@ if __name__ == "__main__":
             (Xtr, Xvl, Xts) = tuple([x.T.tocsr() for x in splitted_interaction])
 
             if j == 0:
-                # find best model 
+                # find best model
                 model, params = get_model_instance(
                     conf['model'], (Xtr, Ytr), (Xvl, Yvl),
                     use_gpu=args.fm_gpu, batch_sz=args.fm_batch_sz
